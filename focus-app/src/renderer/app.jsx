@@ -426,7 +426,7 @@ function CoachView() {
       setResponse(text);
     } catch (e) {
       setHasKey(false);
-      setResponse('Could not reach Claude. Make sure your ANTHROPIC_API_KEY is set in the .env file and restart the app.');
+      setResponse(`Error: ${e.message}`);
     }
     setLoading(false);
   };
@@ -438,7 +438,7 @@ function CoachView() {
       const text = await window.electronAPI.claudeReview({ tasks, sessions });
       setResponse(text);
     } catch (e) {
-      setResponse('Could not reach Claude. Check your ANTHROPIC_API_KEY in .env.');
+      setResponse(`Error: ${e.message}`);
     }
     setLoading(false);
   };
@@ -451,7 +451,7 @@ function CoachView() {
       const text = await window.electronAPI.claudeDraft({ channel: draftChannel, context: draftContext });
       setResponse(text);
     } catch (e) {
-      setResponse('Could not reach Claude. Check your ANTHROPIC_API_KEY in .env.');
+      setResponse(`Error: ${e.message}`);
     }
     setLoading(false);
   };
@@ -647,10 +647,10 @@ function App() {
       </div>
 
       <div className="content">
-        {activeTab === 'Today' && <TodayView />}
-        {activeTab === 'Focus' && <FocusView />}
-        {activeTab === 'Notes' && <Placeholder label="Notes with Claude summarization" phase="Phase 8" />}
-        {activeTab === 'Coach' && <CoachView />}
+        <div style={{ display: activeTab === 'Today' ? 'block' : 'none' }}><TodayView /></div>
+        <div style={{ display: activeTab === 'Focus' ? 'block' : 'none' }}><FocusView /></div>
+        <div style={{ display: activeTab === 'Notes' ? 'block' : 'none' }}><Placeholder label="Notes with Claude summarization" phase="Phase 8" /></div>
+        <div style={{ display: activeTab === 'Coach' ? 'block' : 'none' }}><CoachView /></div>
       </div>
 
       {showCapture && <QuickCapture onClose={closeCapture} />}

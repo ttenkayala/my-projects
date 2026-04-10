@@ -101,7 +101,12 @@ ipcMain.handle('sessions:add', (_, session) => store.addFocusSession(session));
 
 // IPC: Claude
 ipcMain.handle('claude:kickoff', async (_, tasks) => {
-  return claude.ask(claude.kickoffPrompt(tasks));
+  try {
+    return await claude.ask(claude.kickoffPrompt(tasks));
+  } catch (e) {
+    console.error('Claude error:', e.message, e.status, e.error);
+    throw e;
+  }
 });
 ipcMain.handle('claude:review', async (_, payload) => {
   return claude.ask(claude.reviewPrompt(payload), { model: 'claude-sonnet-4-6' });
