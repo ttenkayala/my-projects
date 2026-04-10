@@ -2,12 +2,22 @@ const { useState, useEffect, useCallback } = React;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function PriorityBadge({ level }) {
+const PRIORITY_CYCLE = { high: 'med', med: 'low', low: 'high' };
+
+function PriorityBadge({ level, onClick }) {
   const cls = level === 'high' ? 'priority-high' : level === 'med' ? 'priority-med' : 'priority-low';
-  return <span className={`priority-badge ${cls}`}>{level}</span>;
+  return (
+    <button
+      className={`priority-badge ${cls}`}
+      onClick={onClick}
+      title="Click to change priority"
+    >
+      {level}
+    </button>
+  );
 }
 
-function TaskItem({ task, onToggle, onDelete }) {
+function TaskItem({ task, onToggle, onDelete, onPriority }) {
   return (
     <div className={`task-item ${task.done ? 'done' : ''}`}>
       <button
@@ -18,7 +28,10 @@ function TaskItem({ task, onToggle, onDelete }) {
         {task.done && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
       </button>
       <span className="task-title">{task.title}</span>
-      <PriorityBadge level={task.priority} />
+      <PriorityBadge
+        level={task.priority}
+        onClick={() => onPriority(task.id, PRIORITY_CYCLE[task.priority])}
+      />
       <button className="task-delete" onClick={() => onDelete(task.id)} title="Delete task">×</button>
     </div>
   );
@@ -47,6 +60,11 @@ function TodayView() {
     setTasks(prev => prev.filter(t => t.id !== id));
   };
 
+  const changePriority = async (id, priority) => {
+    const updated = await window.electronAPI.updateTask(id, { priority });
+    setTasks(prev => prev.map(t => t.id === id ? updated : t));
+  };
+
   const addTask = async () => {
     if (!newTask.trim()) return;
     const task = await window.electronAPI.addTask({ title: newTask.trim(), priority });
@@ -69,7 +87,7 @@ function TodayView() {
       )}
 
       <div className="task-list">
-        {pending.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />)}
+        {pending.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority} />)}
       </div>
 
       <div className="add-task-row">
@@ -96,7 +114,7 @@ function TodayView() {
         <>
           <div className="section-title" style={{ marginTop: 28 }}>Completed — {done.length}</div>
           <div className="task-list">
-            {done.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />)}
+            {done.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority} />)}
           </div>
         </>
       )}
