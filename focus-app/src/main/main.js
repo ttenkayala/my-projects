@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, Notification } = require('electron');
 const path = require('path');
+const store = require('../db/store');
 
 let mainWindow;
 let tray;
@@ -82,7 +83,13 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-// IPC: renderer asks for notification
+// IPC: notifications
 ipcMain.on('notify', (event, { title, body }) => {
   new Notification({ title, body }).show();
 });
+
+// IPC: task CRUD
+ipcMain.handle('tasks:get',    () => store.getTasks());
+ipcMain.handle('tasks:add',    (_, task) => store.addTask(task));
+ipcMain.handle('tasks:update', (_, id, changes) => store.updateTask(id, changes));
+ipcMain.handle('tasks:delete', (_, id) => store.deleteTask(id));

@@ -127,6 +127,39 @@ body {
 .priority-med { background: rgba(245,158,11,0.15); color: var(--yellow); }
 .priority-low { background: rgba(99,102,241,0.15); color: var(--accent); }
 
+.task-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.task-item:hover .task-delete { opacity: 1; }
+.task-delete:hover { color: var(--red); }
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 12px 0 16px;
+}
+
+.select {
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.select:focus { border-color: var(--accent); }
+
 /* Add task */
 .add-task-row {
   display: flex;

@@ -1,13 +1,5 @@
 const { useState, useEffect, useCallback } = React;
 
-// ── Sample data (replaced by SQLite in Phase 2) ──────────────────────────────
-const SAMPLE_TASKS = [
-  { id: 1, title: 'Morning kickoff — plan today\'s top 3', priority: 'high', done: false },
-  { id: 2, title: 'Review focus-app Phase 2 plan', priority: 'high', done: false },
-  { id: 3, title: 'Draft Slack update for data team', priority: 'med', done: false },
-  { id: 4, title: 'Log yesterday\'s focus session notes', priority: 'low', done: true },
-];
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function PriorityBadge({ level }) {
@@ -15,61 +7,96 @@ function PriorityBadge({ level }) {
   return <span className={`priority-badge ${cls}`}>{level}</span>;
 }
 
-function TaskItem({ task, onToggle }) {
+function TaskItem({ task, onToggle, onDelete }) {
   return (
     <div className={`task-item ${task.done ? 'done' : ''}`}>
       <button
         className={`task-check ${task.done ? 'checked' : ''}`}
-        onClick={() => onToggle(task.id)}
+        onClick={() => onToggle(task.id, !task.done)}
         title={task.done ? 'Mark incomplete' : 'Mark complete'}
       >
         {task.done && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
       </button>
       <span className="task-title">{task.title}</span>
       <PriorityBadge level={task.priority} />
+      <button className="task-delete" onClick={() => onDelete(task.id)} title="Delete task">×</button>
     </div>
   );
 }
 
 function TodayView() {
-  const [tasks, setTasks] = useState(SAMPLE_TASKS);
+  const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [priority, setPriority] = useState('med');
+  const [loading, setLoading] = useState(true);
 
-  const toggleTask = (id) =>
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  useEffect(() => {
+    window.electronAPI.getTasks().then(t => {
+      setTasks(t);
+      setLoading(false);
+    });
+  }, []);
 
-  const addTask = () => {
+  const toggleTask = async (id, done) => {
+    const updated = await window.electronAPI.updateTask(id, { done });
+    setTasks(prev => prev.map(t => t.id === id ? updated : t));
+  };
+
+  const deleteTask = async (id) => {
+    await window.electronAPI.deleteTask(id);
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const addTask = async () => {
     if (!newTask.trim()) return;
-    setTasks([...tasks, { id: Date.now(), title: newTask.trim(), priority: 'med', done: false }]);
+    const task = await window.electronAPI.addTask({ title: newTask.trim(), priority });
+    setTasks(prev => [...prev, task]);
     setNewTask('');
+    setPriority('med');
   };
 
   const pending = tasks.filter(t => !t.done);
   const done = tasks.filter(t => t.done);
 
+  if (loading) return <div className="placeholder"><div className="label">Loading...</div></div>;
+
   return (
     <div>
       <div className="section-title">Today — {pending.length} remaining</div>
+
+      {pending.length === 0 && (
+        <div className="empty-state">All done! Add a task below or enjoy the moment.</div>
+      )}
+
       <div className="task-list">
-        {pending.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} />)}
+        {pending.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />)}
       </div>
 
       <div className="add-task-row">
         <input
           className="input"
-          placeholder="Add a task... (Enter to save)"
+          placeholder="Add a task..."
           value={newTask}
           onChange={e => setNewTask(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addTask()}
         />
+        <select
+          className="select"
+          value={priority}
+          onChange={e => setPriority(e.target.value)}
+        >
+          <option value="high">High</option>
+          <option value="med">Med</option>
+          <option value="low">Low</option>
+        </select>
         <button className="btn btn-primary" onClick={addTask}>Add</button>
       </div>
 
       {done.length > 0 && (
         <>
-          <div className="section-title" style={{ marginTop: 28 }}>Completed</div>
+          <div className="section-title" style={{ marginTop: 28 }}>Completed — {done.length}</div>
           <div className="task-list">
-            {done.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} />)}
+            {done.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />)}
           </div>
         </>
       )}
@@ -90,13 +117,14 @@ function Placeholder({ label, phase }) {
 
 function QuickCapture({ onClose }) {
   const [value, setValue] = useState('');
+  const [priority, setPriority] = useState('med');
+  const [saved, setSaved] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!value.trim()) { onClose(); return; }
-    // Phase 2: save to SQLite
-    console.log('Quick capture:', value.trim());
-    setValue('');
-    onClose();
+    await window.electronAPI.addTask({ title: value.trim(), priority });
+    setSaved(true);
+    setTimeout(onClose, 600);
   };
 
   useEffect(() => {
@@ -109,17 +137,27 @@ function QuickCapture({ onClose }) {
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="quick-capture-box">
         <h3>Quick Capture — Cmd+Shift+F</h3>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            className="input"
-            placeholder="Task or note... (Enter to save, Esc to cancel)"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            autoFocus
-          />
-          <button className="btn btn-primary" onClick={handleSubmit}>Save</button>
-        </div>
+        {saved
+          ? <div style={{ color: 'var(--green)', padding: '8px 0' }}>Saved!</div>
+          : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="input"
+                placeholder="Task... (Enter to save, Esc to cancel)"
+                value={value}
+                onChange={e => setValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                autoFocus
+              />
+              <select className="select" value={priority} onChange={e => setPriority(e.target.value)}>
+                <option value="high">High</option>
+                <option value="med">Med</option>
+                <option value="low">Low</option>
+              </select>
+              <button className="btn btn-primary" onClick={handleSubmit}>Save</button>
+            </div>
+          )
+        }
       </div>
     </div>
   );
@@ -133,12 +171,10 @@ function App() {
   const [activeTab, setActiveTab] = useState('Today');
   const [showCapture, setShowCapture] = useState(false);
 
-  // Listen for quick-capture trigger from Electron main process
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.onOpenQuickCapture(() => setShowCapture(true));
     }
-    // Also support Cmd+Shift+F from within the renderer (fallback)
     const handler = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
         e.preventDefault();
