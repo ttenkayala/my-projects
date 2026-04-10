@@ -93,3 +93,7 @@ ipcMain.handle('tasks:get',    () => store.getTasks());
 ipcMain.handle('tasks:add',    (_, task) => store.addTask(task));
 ipcMain.handle('tasks:update', (_, id, changes) => store.updateTask(id, changes));
 ipcMain.handle('tasks:delete', (_, id) => store.deleteTask(id));
+
+// IPC: focus sessions
+ipcMain.handle('sessions:get', (_, date) => store.getFocusSessions(date));
+ipcMain.handle('sessions:add', (_, session) => store.addFocusSession(session));

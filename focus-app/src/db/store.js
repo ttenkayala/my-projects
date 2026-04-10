@@ -71,4 +71,30 @@ function deleteTask(id) {
   write(data);
 }
 
-module.exports = { getTasks, addTask, updateTask, deleteTask };
+// ── Focus Sessions ─────────────────────────────────────────────────────────────
+
+function getFocusSessions(date) {
+  // date: 'YYYY-MM-DD' — returns sessions for that day
+  const data = read();
+  return data.focusSessions.filter(s => s.date === date);
+}
+
+function addFocusSession({ taskId, taskTitle, durationMinutes, reflection, interrupted }) {
+  const data = read();
+  const now = new Date();
+  const session = {
+    id: uid(),
+    taskId,
+    taskTitle,
+    durationMinutes,
+    reflection: reflection || '',
+    interrupted: interrupted || false,
+    date: now.toISOString().slice(0, 10),
+    completedAt: now.toISOString(),
+  };
+  data.focusSessions.push(session);
+  write(data);
+  return session;
+}
+
+module.exports = { getTasks, addTask, updateTask, deleteTask, getFocusSessions, addFocusSession };

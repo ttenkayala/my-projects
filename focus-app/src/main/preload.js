@@ -12,4 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addTask:     (task)         => ipcRenderer.invoke('tasks:add', task),
   updateTask:  (id, changes)  => ipcRenderer.invoke('tasks:update', id, changes),
   deleteTask:  (id)           => ipcRenderer.invoke('tasks:delete', id),
+
+  // Focus sessions
+  getSessions: (date)         => ipcRenderer.invoke('sessions:get', date),
+  addSession:  (session)      => ipcRenderer.invoke('sessions:add', session),
 });

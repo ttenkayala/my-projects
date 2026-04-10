@@ -122,6 +122,246 @@ function TodayView() {
   );
 }
 
+// ── Focus / Pomodoro ──────────────────────────────────────────────────────────
+
+const WORK_MINS = 25;
+const BREAK_MINS = 5;
+
+function fmt(seconds) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function CheckInModal({ taskTitle, onDone }) {
+  const [reflection, setReflection] = useState('');
+  const [interrupted, setInterrupted] = useState(false);
+
+  return (
+    <div className="overlay" style={{ paddingTop: 100 }}>
+      <div className="quick-capture-box" style={{ width: 520 }}>
+        <h3 style={{ marginBottom: 14, color: 'var(--text)', fontSize: 15 }}>
+          Pomodoro complete!
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
+          You were working on: <strong style={{ color: 'var(--text)' }}>{taskTitle}</strong>
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={interrupted}
+            onChange={e => setInterrupted(e.target.checked)}
+          />
+          <span style={{ color: 'var(--text-muted)' }}>I got distracted / didn't stay on task</span>
+        </label>
+        <textarea
+          className="input"
+          style={{ width: '100%', height: 72, resize: 'none', marginBottom: 12 }}
+          placeholder="Optional: what did you actually work on? Any blockers?"
+          value={reflection}
+          onChange={e => setReflection(e.target.value)}
+        />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-primary" onClick={() => onDone({ reflection, interrupted })}>
+            Save & Start Break
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FocusView() {
+  const [tasks, setTasks] = useState([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [phase, setPhase] = useState('idle'); // idle | work | break
+  const [seconds, setSeconds] = useState(WORK_MINS * 60);
+  const [pomosToday, setPomosToday] = useState(0);
+  const [sessions, setSessions] = useState([]);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const intervalRef = React.useRef(null);
+
+  const today = todayStr();
+
+  useEffect(() => {
+    Promise.all([
+      window.electronAPI.getTasks(),
+      window.electronAPI.getSessions(today),
+    ]).then(([t, s]) => {
+      setTasks(t.filter(t => !t.done));
+      setSessions(s);
+      setPomosToday(s.length);
+    });
+  }, []);
+
+  const selectedTask = tasks.find(t => t.id === selectedId);
+
+  const clearTimer = () => {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  };
+
+  const startWork = () => {
+    if (!selectedId) return;
+    setPhase('work');
+    setSeconds(WORK_MINS * 60);
+    clearTimer();
+    intervalRef.current = setInterval(() => {
+      setSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          setShowCheckIn(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const startBreak = () => {
+    setPhase('break');
+    setSeconds(BREAK_MINS * 60);
+    clearTimer();
+    intervalRef.current = setInterval(() => {
+      setSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          setPhase('idle');
+          setSeconds(WORK_MINS * 60);
+          window.electronAPI.notify('Break over!', 'Ready for your next pomodoro?');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const pause = () => {
+    if (intervalRef.current) {
+      clearTimer();
+      setPhase('paused');
+    } else {
+      setPhase('work');
+      intervalRef.current = setInterval(() => {
+        setSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            setShowCheckIn(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const stop = () => {
+    clearTimer();
+    setPhase('idle');
+    setSeconds(WORK_MINS * 60);
+  };
+
+  const handleCheckIn = async ({ reflection, interrupted }) => {
+    setShowCheckIn(false);
+    const session = await window.electronAPI.addSession({
+      taskId: selectedId,
+      taskTitle: selectedTask?.title || '',
+      durationMinutes: WORK_MINS,
+      reflection,
+      interrupted,
+    });
+    setSessions(prev => [session, ...prev]);
+    setPomosToday(prev => prev + 1);
+    window.electronAPI.notify('Pomodoro logged!', `${pomosToday + 1} today. Take a ${BREAK_MINS}-min break.`);
+    startBreak();
+  };
+
+  useEffect(() => () => clearTimer(), []);
+
+  const isRunning = phase === 'work' || phase === 'break';
+  const canStart = !!selectedId && phase === 'idle';
+
+  return (
+    <div>
+      <div className="section-title">Focus — {pomosToday} pomodoro{pomosToday !== 1 ? 's' : ''} today</div>
+
+      {/* Task selector */}
+      <div style={{ marginBottom: 24 }}>
+        <select
+          className="select"
+          style={{ width: '100%', padding: '10px 12px', fontSize: 14 }}
+          value={selectedId}
+          onChange={e => setSelectedId(e.target.value)}
+          disabled={isRunning || phase === 'paused'}
+        >
+          <option value="">— Select a task to focus on —</option>
+          {tasks.map(t => (
+            <option key={t.id} value={t.id}>{t.title}</option>
+          ))}
+        </select>
+        {tasks.length === 0 && (
+          <div className="empty-state" style={{ marginTop: 8 }}>No pending tasks. Add some in Today first.</div>
+        )}
+      </div>
+
+      {/* Timer */}
+      <div className="timer-block">
+        <div className={`timer-phase-label ${phase === 'break' ? 'break' : ''}`}>
+          {phase === 'idle' ? 'Ready' : phase === 'work' ? 'Focus' : phase === 'paused' ? 'Paused' : 'Break'}
+        </div>
+        <div className="timer-display">{fmt(seconds)}</div>
+        {selectedTask && phase !== 'idle' && (
+          <div className="timer-task-label">{selectedTask.title}</div>
+        )}
+        <div className="timer-controls">
+          {canStart && (
+            <button className="btn btn-primary btn-lg" onClick={startWork}>Start</button>
+          )}
+          {(phase === 'work' || phase === 'paused') && (
+            <>
+              <button className="btn btn-ghost btn-lg" onClick={pause}>
+                {phase === 'paused' ? 'Resume' : 'Pause'}
+              </button>
+              <button className="btn btn-ghost btn-lg" onClick={stop}>Stop</button>
+            </>
+          )}
+          {phase === 'break' && (
+            <button className="btn btn-ghost btn-lg" onClick={stop}>Skip Break</button>
+          )}
+        </div>
+      </div>
+
+      {/* Session log */}
+      {sessions.length > 0 && (
+        <>
+          <div className="section-title" style={{ marginTop: 32 }}>Today's sessions</div>
+          <div className="session-list">
+            {sessions.map(s => (
+              <div key={s.id} className="session-item">
+                <div className="session-meta">
+                  <span className="session-task">{s.taskTitle}</span>
+                  <span className={`session-badge ${s.interrupted ? 'interrupted' : 'clean'}`}>
+                    {s.interrupted ? 'distracted' : 'focused'}
+                  </span>
+                </div>
+                {s.reflection && <div className="session-reflection">{s.reflection}</div>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showCheckIn && (
+        <CheckInModal taskTitle={selectedTask?.title || ''} onDone={handleCheckIn} />
+      )}
+    </div>
+  );
+}
+
 function Placeholder({ label, phase }) {
   return (
     <div className="placeholder">
@@ -225,7 +465,7 @@ function App() {
 
       <div className="content">
         {activeTab === 'Today' && <TodayView />}
-        {activeTab === 'Focus' && <Placeholder label="Pomodoro timer + drift detection" phase="Phase 4" />}
+        {activeTab === 'Focus' && <FocusView />}
         {activeTab === 'Notes' && <Placeholder label="Notes with Claude summarization" phase="Phase 8" />}
         {activeTab === 'Coach' && <Placeholder label="Claude coaching, kickoff & review" phase="Phase 6" />}
       </div>
