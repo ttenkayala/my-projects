@@ -16,4 +16,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Focus sessions
   getSessions: (date)         => ipcRenderer.invoke('sessions:get', date),
   addSession:  (session)      => ipcRenderer.invoke('sessions:add', session),
+
+  // Claude
+  claudeKickoff: (tasks)   => ipcRenderer.invoke('claude:kickoff', tasks),
+  claudeReview:  (payload) => ipcRenderer.invoke('claude:review', payload),
+  claudeDrift:   (payload) => ipcRenderer.invoke('claude:drift', payload),
+  claudeDraft:   (payload) => ipcRenderer.invoke('claude:draft', payload),
 });

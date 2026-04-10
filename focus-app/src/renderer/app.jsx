@@ -362,6 +362,189 @@ function FocusView() {
   );
 }
 
+// ── Coach Tab ─────────────────────────────────────────────────────────────────
+
+function MarkdownText({ text }) {
+  // Minimal markdown: bold, bullets, numbered lists
+  const lines = text.split('\n');
+  return (
+    <div className="coach-response">
+      {lines.map((line, i) => {
+        if (!line.trim()) return <br key={i} />;
+        // Bold
+        const parts = line.split(/(\*\*[^*]+\*\*)/g).map((p, j) =>
+          p.startsWith('**') ? <strong key={j}>{p.slice(2, -2)}</strong> : p
+        );
+        if (/^#{1,3} /.test(line)) {
+          return <div key={i} className="coach-heading">{line.replace(/^#+\s/, '')}</div>;
+        }
+        if (/^[\-\*] /.test(line)) {
+          return <div key={i} className="coach-bullet">• {parts.slice(1)}</div>;
+        }
+        if (/^\d+\. /.test(line)) {
+          return <div key={i} className="coach-numbered">{parts}</div>;
+        }
+        return <div key={i} className="coach-line">{parts}</div>;
+      })}
+    </div>
+  );
+}
+
+function CoachView() {
+  const [tasks, setTasks] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('kickoff'); // kickoff | review | draft
+  const [hasKey, setHasKey] = useState(true);
+  const [draftContext, setDraftContext] = useState('');
+  const [draftChannel, setDraftChannel] = useState('slack');
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    Promise.all([
+      window.electronAPI.getTasks(),
+      window.electronAPI.getSessions(today),
+    ]).then(([t, s]) => {
+      setTasks(t);
+      setSessions(s);
+    });
+  }, []);
+
+  const pending = tasks.filter(t => !t.done);
+
+  const runKickoff = async () => {
+    if (pending.length === 0) {
+      setResponse('No pending tasks. Add some in the Today tab first, then come back for your kickoff.');
+      return;
+    }
+    setLoading(true);
+    setResponse('');
+    try {
+      const text = await window.electronAPI.claudeKickoff(pending);
+      setResponse(text);
+    } catch (e) {
+      setHasKey(false);
+      setResponse('Could not reach Claude. Make sure your ANTHROPIC_API_KEY is set in the .env file and restart the app.');
+    }
+    setLoading(false);
+  };
+
+  const runReview = async () => {
+    setLoading(true);
+    setResponse('');
+    try {
+      const text = await window.electronAPI.claudeReview({ tasks, sessions });
+      setResponse(text);
+    } catch (e) {
+      setResponse('Could not reach Claude. Check your ANTHROPIC_API_KEY in .env.');
+    }
+    setLoading(false);
+  };
+
+  const runDraft = async () => {
+    if (!draftContext.trim()) return;
+    setLoading(true);
+    setResponse('');
+    try {
+      const text = await window.electronAPI.claudeDraft({ channel: draftChannel, context: draftContext });
+      setResponse(text);
+    } catch (e) {
+      setResponse('Could not reach Claude. Check your ANTHROPIC_API_KEY in .env.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      {/* Mode switcher */}
+      <div className="coach-tabs">
+        {[['kickoff', 'Morning Kickoff'], ['review', 'End-of-Day Review'], ['draft', 'Draft a Message']].map(([key, label]) => (
+          <button
+            key={key}
+            className={`coach-tab ${mode === key ? 'active' : ''}`}
+            onClick={() => { setMode(key); setResponse(''); }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Kickoff */}
+      {mode === 'kickoff' && (
+        <div className="coach-panel">
+          <p className="coach-desc">
+            Claude will look at your {pending.length} pending task{pending.length !== 1 ? 's' : ''} and suggest a plan for today.
+          </p>
+          {pending.length > 0 && (
+            <div className="coach-task-preview">
+              {pending.map(t => (
+                <div key={t.id} className="coach-task-row">
+                  <span className={`priority-badge priority-${t.priority === 'high' ? 'high' : t.priority === 'med' ? 'med' : 'low'}`}>{t.priority}</span>
+                  <span>{t.title}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-primary" onClick={runKickoff} disabled={loading}>
+            {loading ? 'Thinking...' : 'Get my plan'}
+          </button>
+        </div>
+      )}
+
+      {/* Review */}
+      {mode === 'review' && (
+        <div className="coach-panel">
+          <p className="coach-desc">
+            Claude will review your day — {tasks.filter(t => t.done).length} tasks done, {pending.length} pending, {sessions.length} pomodoros logged.
+          </p>
+          <button className="btn btn-primary" onClick={runReview} disabled={loading}>
+            {loading ? 'Thinking...' : 'Review my day'}
+          </button>
+        </div>
+      )}
+
+      {/* Draft */}
+      {mode === 'draft' && (
+        <div className="coach-panel">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <select className="select" value={draftChannel} onChange={e => setDraftChannel(e.target.value)}>
+              <option value="slack">Slack</option>
+              <option value="email">Email</option>
+              <option value="text">Text</option>
+            </select>
+          </div>
+          <textarea
+            className="input"
+            style={{ width: '100%', height: 90, resize: 'none', marginBottom: 10 }}
+            placeholder="Describe what you need to communicate. e.g. 'Tell my team the data pipeline is delayed by 2 days and we'll have an update Friday.'"
+            value={draftContext}
+            onChange={e => setDraftContext(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={runDraft} disabled={loading || !draftContext.trim()}>
+            {loading ? 'Drafting...' : 'Draft message'}
+          </button>
+        </div>
+      )}
+
+      {/* Response */}
+      {response && (
+        <div className="coach-response-wrap">
+          <MarkdownText text={response} />
+          <button
+            className="btn btn-ghost"
+            style={{ marginTop: 12, fontSize: 12 }}
+            onClick={() => navigator.clipboard.writeText(response)}
+          >
+            Copy
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Placeholder({ label, phase }) {
   return (
     <div className="placeholder">
@@ -467,7 +650,7 @@ function App() {
         {activeTab === 'Today' && <TodayView />}
         {activeTab === 'Focus' && <FocusView />}
         {activeTab === 'Notes' && <Placeholder label="Notes with Claude summarization" phase="Phase 8" />}
-        {activeTab === 'Coach' && <Placeholder label="Claude coaching, kickoff & review" phase="Phase 6" />}
+        {activeTab === 'Coach' && <CoachView />}
       </div>
 
       {showCapture && <QuickCapture onClose={closeCapture} />}

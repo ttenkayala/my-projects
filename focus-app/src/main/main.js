@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, Notification } = require('electron');
 const path = require('path');
 const store = require('../db/store');
+const claude = require('../claude/client');
 
 let mainWindow;
 let tray;
@@ -97,3 +98,17 @@ ipcMain.handle('tasks:delete', (_, id) => store.deleteTask(id));
 // IPC: focus sessions
 ipcMain.handle('sessions:get', (_, date) => store.getFocusSessions(date));
 ipcMain.handle('sessions:add', (_, session) => store.addFocusSession(session));
+
+// IPC: Claude
+ipcMain.handle('claude:kickoff', async (_, tasks) => {
+  return claude.ask(claude.kickoffPrompt(tasks));
+});
+ipcMain.handle('claude:review', async (_, payload) => {
+  return claude.ask(claude.reviewPrompt(payload), { model: 'claude-sonnet-4-6' });
+});
+ipcMain.handle('claude:drift', async (_, payload) => {
+  return claude.ask(claude.driftPrompt(payload));
+});
+ipcMain.handle('claude:draft', async (_, payload) => {
+  return claude.ask(claude.draftPrompt(payload), { model: 'claude-sonnet-4-6' });
+});
