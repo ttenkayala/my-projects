@@ -40,7 +40,7 @@ function createTray() {
     { label: 'Quit', click: () => app.quit() },
   ]);
 
-  tray.setToolTip('Focus App');
+  tray.setToolTip('Holocron');
   tray.setContextMenu(contextMenu);
   tray.on('click', () => { if (mainWindow) mainWindow.show(); else createWindow(); });
 }
@@ -50,6 +50,40 @@ function openQuickCapture() {
     mainWindow.show();
     mainWindow.webContents.send('open-quick-capture');
   }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+let lastActivityTime = Date.now();
+const IDLE_THRESHOLD_MS = 45 * 60 * 1000; // 45 min
+const EOD_HOUR = 17; // 5pm
+
+function startNotificationTimers() {
+  // Idle nudge — check every 5 min
+  setInterval(() => {
+    const idleMs = Date.now() - lastActivityTime;
+    if (idleMs >= IDLE_THRESHOLD_MS) {
+      new Notification({
+        title: 'Holocron nudge',
+        body: "You haven't logged a focus session in 45 minutes. Still on track?",
+      }).show();
+      lastActivityTime = Date.now(); // reset so it doesn't spam
+    }
+  }, 5 * 60 * 1000);
+
+  // End-of-day reminder — check every minute
+  let eodFiredToday = null;
+  setInterval(() => {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    if (now.getHours() === EOD_HOUR && now.getMinutes() === 0 && eodFiredToday !== today) {
+      eodFiredToday = today;
+      new Notification({
+        title: 'End of day — Holocron',
+        body: 'Time to review your day. Open the Coach tab.',
+      }).show();
+    }
+  }, 60 * 1000);
 }
 
 app.whenReady().then(() => {
@@ -69,6 +103,8 @@ app.whenReady().then(() => {
 
   // Global shortcut: Cmd+Shift+F → quick capture
   globalShortcut.register('CmdOrCtrl+Shift+F', openQuickCapture);
+
+  startNotificationTimers();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -103,7 +139,10 @@ ipcMain.handle('notes:delete', (_, id) => store.deleteNote(id));
 
 // IPC: focus sessions
 ipcMain.handle('sessions:get', (_, date) => store.getFocusSessions(date));
-ipcMain.handle('sessions:add', (_, session) => store.addFocusSession(session));
+ipcMain.handle('sessions:add', (_, session) => {
+  lastActivityTime = Date.now(); // reset idle timer
+  return store.addFocusSession(session);
+});
 
 // IPC: Claude
 ipcMain.handle('claude:kickoff', async (_, tasks) => {

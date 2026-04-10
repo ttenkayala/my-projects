@@ -1,7 +1,7 @@
 {
-  "name": "focus-app",
+  "name": "holocron",
   "version": "0.1.0",
-  "description": "Personal productivity app — notes, todos, focus timer, and Claude coaching",
+  "description": "Holocron — your personal Jedi productivity system. Notes, todos, focus timer, and Claude coaching.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",

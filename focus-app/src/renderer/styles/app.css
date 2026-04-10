@@ -384,6 +384,25 @@ textarea.input { resize: none; }
 .coach-numbered { font-size: 13px; color: var(--text); line-height: 1.6; }
 .coach-line     { font-size: 13px; color: var(--text); line-height: 1.6; }
 
+/* Drift detection */
+.drift-box {
+  margin-top: 28px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.drift-result {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.drift-result.on-track  { background: rgba(34,197,94,0.1);  border-left: 3px solid var(--green); color: var(--text); }
+.drift-result.drifting  { background: rgba(239,68,68,0.1);  border-left: 3px solid var(--red);   color: var(--text); }
+
 /* Notes */
 .note-compose { margin-bottom: 20px; }
 

@@ -355,8 +355,56 @@ function FocusView() {
         </>
       )}
 
+      {/* Drift detection — Quick Ask */}
+      {(phase === 'work' || phase === 'paused') && selectedTask && (
+        <DriftAsk currentTask={selectedTask.title} />
+      )}
+
       {showCheckIn && (
         <CheckInModal taskTitle={selectedTask?.title || ''} onDone={handleCheckIn} />
+      )}
+    </div>
+  );
+}
+
+function DriftAsk({ currentTask }) {
+  const [question, setQuestion] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const ask = async () => {
+    if (!question.trim()) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const text = await window.electronAPI.claudeDrift({ currentTask, question: question.trim() });
+      const isDrifting = text.toUpperCase().startsWith('DRIFTING');
+      setResult({ text, isDrifting });
+    } catch (e) {
+      setResult({ text: `Error: ${e.message}`, isDrifting: false });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="drift-box">
+      <div className="section-title" style={{ marginBottom: 8 }}>Quick Ask — drift check enabled</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          className="input"
+          placeholder="Ask anything — I'll tell you if it's on task..."
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && ask()}
+        />
+        <button className="btn btn-ghost" onClick={ask} disabled={loading || !question.trim()}>
+          {loading ? '...' : 'Ask'}
+        </button>
+      </div>
+      {result && (
+        <div className={`drift-result ${result.isDrifting ? 'drifting' : 'on-track'}`}>
+          {result.text}
+        </div>
       )}
     </div>
   );
@@ -823,7 +871,7 @@ function App() {
   return (
     <div className="app">
       <div className="titlebar">
-        <span className="titlebar-title">Focus</span>
+        <span className="titlebar-title">⚡ Holocron</span>
       </div>
 
       <div className="tabs">

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-const DATA_PATH = path.join(app.getPath('userData'), 'focus-data.json');
+const DATA_PATH = path.join(app.getPath('userData'), 'holocron-data.json');
 
 const DEFAULT_DATA = {
   tasks: [],
