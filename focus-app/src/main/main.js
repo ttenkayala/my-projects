@@ -14,6 +14,7 @@ function createWindow() {
     minHeight: 500,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#1a1a1a',
+    icon: path.join(__dirname, '../../assets/app-icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -86,18 +87,20 @@ function startNotificationTimers() {
   }, 60 * 1000);
 }
 
+// Set dock icon as early as possible on macOS
+const { nativeImage } = require('electron');
+app.on('ready', () => {
+  const assetsDir = path.join(__dirname, '../../assets');
+  if (process.platform === 'darwin' && app.dock) {
+    const dockIcon = nativeImage.createFromPath(path.join(assetsDir, 'app-icon.png'));
+    if (!dockIcon.isEmpty()) app.dock.setIcon(dockIcon);
+  }
+});
+
 app.whenReady().then(() => {
-  // Tray icon: create a placeholder if asset missing
   const assetsDir = path.join(__dirname, '../../assets');
   const fs = require('fs');
   if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
-
-  // Set dock icon (macOS)
-  if (process.platform === 'darwin' && app.dock) {
-    const { nativeImage } = require('electron');
-    const dockIcon = nativeImage.createFromPath(path.join(assetsDir, 'app-icon.png'));
-    app.dock.setIcon(dockIcon);
-  }
 
   createWindow();
 
