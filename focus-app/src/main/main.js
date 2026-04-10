@@ -95,6 +95,12 @@ ipcMain.handle('tasks:add',    (_, task) => store.addTask(task));
 ipcMain.handle('tasks:update', (_, id, changes) => store.updateTask(id, changes));
 ipcMain.handle('tasks:delete', (_, id) => store.deleteTask(id));
 
+// IPC: notes
+ipcMain.handle('notes:get',    () => store.getNotes());
+ipcMain.handle('notes:add',    (_, note) => store.addNote(note));
+ipcMain.handle('notes:update', (_, id, changes) => store.updateNote(id, changes));
+ipcMain.handle('notes:delete', (_, id) => store.deleteNote(id));
+
 // IPC: focus sessions
 ipcMain.handle('sessions:get', (_, date) => store.getFocusSessions(date));
 ipcMain.handle('sessions:add', (_, session) => store.addFocusSession(session));
@@ -116,4 +122,7 @@ ipcMain.handle('claude:drift', async (_, payload) => {
 });
 ipcMain.handle('claude:draft', async (_, payload) => {
   return claude.ask(claude.draftPrompt(payload), { model: 'claude-sonnet-4-6' });
+});
+ipcMain.handle('claude:summarize', async (_, content) => {
+  return claude.ask(claude.summarizePrompt(content));
 });

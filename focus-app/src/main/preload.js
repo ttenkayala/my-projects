@@ -17,9 +17,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSessions: (date)         => ipcRenderer.invoke('sessions:get', date),
   addSession:  (session)      => ipcRenderer.invoke('sessions:add', session),
 
+  // Notes
+  getNotes:    ()              => ipcRenderer.invoke('notes:get'),
+  addNote:     (note)          => ipcRenderer.invoke('notes:add', note),
+  updateNote:  (id, changes)   => ipcRenderer.invoke('notes:update', id, changes),
+  deleteNote:  (id)            => ipcRenderer.invoke('notes:delete', id),
+
   // Claude
-  claudeKickoff: (tasks)   => ipcRenderer.invoke('claude:kickoff', tasks),
-  claudeReview:  (payload) => ipcRenderer.invoke('claude:review', payload),
-  claudeDrift:   (payload) => ipcRenderer.invoke('claude:drift', payload),
-  claudeDraft:   (payload) => ipcRenderer.invoke('claude:draft', payload),
+  claudeKickoff:   (tasks)   => ipcRenderer.invoke('claude:kickoff', tasks),
+  claudeReview:    (payload) => ipcRenderer.invoke('claude:review', payload),
+  claudeDrift:     (payload) => ipcRenderer.invoke('claude:drift', payload),
+  claudeDraft:     (payload) => ipcRenderer.invoke('claude:draft', payload),
+  claudeSummarize: (content) => ipcRenderer.invoke('claude:summarize', content),
 });

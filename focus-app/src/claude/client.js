@@ -39,6 +39,10 @@ function driftPrompt({ currentTask, question }) {
   return `I'm supposed to be working on: "${currentTask}"\n\nI'm about to ask: "${question}"\n\nIs this related to my current task? Reply with one of:\n- ON TRACK: [one sentence why]\n- DRIFTING: [one sentence why, and what I should do instead]`;
 }
 
+function summarizePrompt(content) {
+  return `Summarize the following note in 1-3 concise bullet points. Extract the key facts, decisions, or action items. Be brief.\n\nNote:\n${content}`;
+}
+
 function draftPrompt({ channel, context, tone }) {
   return `Draft a ${channel} message.\n\nContext: ${context}\nTone: ${tone || 'professional but direct'}\n\nGive me 2 short variants. Label them Option A and Option B.`;
 }
@@ -56,4 +60,4 @@ async function ask(userPrompt, { model = 'claude-haiku-4-5-20251001' } = {}) {
   return msg.content[0].text;
 }
 
-module.exports = { ask, kickoffPrompt, reviewPrompt, driftPrompt, draftPrompt };
+module.exports = { ask, kickoffPrompt, reviewPrompt, driftPrompt, draftPrompt, summarizePrompt };

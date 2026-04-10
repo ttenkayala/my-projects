@@ -71,6 +71,42 @@ function deleteTask(id) {
   write(data);
 }
 
+// ── Notes ─────────────────────────────────────────────────────────────────────
+
+function getNotes() {
+  return read().notes;
+}
+
+function addNote({ content, taskId = null }) {
+  const data = read();
+  const note = {
+    id: uid(),
+    content,
+    taskId,
+    summary: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  data.notes.unshift(note);
+  write(data);
+  return note;
+}
+
+function updateNote(id, changes) {
+  const data = read();
+  const idx = data.notes.findIndex(n => n.id === id);
+  if (idx === -1) return null;
+  data.notes[idx] = { ...data.notes[idx], ...changes, updatedAt: new Date().toISOString() };
+  write(data);
+  return data.notes[idx];
+}
+
+function deleteNote(id) {
+  const data = read();
+  data.notes = data.notes.filter(n => n.id !== id);
+  write(data);
+}
+
 // ── Focus Sessions ─────────────────────────────────────────────────────────────
 
 function getFocusSessions(date) {
@@ -97,4 +133,4 @@ function addFocusSession({ taskId, taskTitle, durationMinutes, reflection, inter
   return session;
 }
 
-module.exports = { getTasks, addTask, updateTask, deleteTask, getFocusSessions, addFocusSession };
+module.exports = { getTasks, addTask, updateTask, deleteTask, getNotes, addNote, updateNote, deleteNote, getFocusSessions, addFocusSession };

@@ -555,6 +555,120 @@ function CoachView() {
   );
 }
 
+// ── Notes Tab ─────────────────────────────────────────────────────────────────
+
+function timeAgo(isoString) {
+  const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function NoteCard({ note, onDelete, onSummarize }) {
+  const [summarizing, setSummarizing] = useState(false);
+  const [summary, setSummary] = useState(note.summary || '');
+
+  const handleSummarize = async () => {
+    setSummarizing(true);
+    const text = await onSummarize(note.id, note.content);
+    setSummary(text);
+    setSummarizing(false);
+  };
+
+  return (
+    <div className="note-card">
+      <div className="note-content">{note.content}</div>
+      {summary && (
+        <div className="note-summary">
+          <span className="note-summary-label">Summary</span>
+          <div>{summary}</div>
+        </div>
+      )}
+      <div className="note-footer">
+        <span className="note-time">{timeAgo(note.createdAt)}</span>
+        <div className="note-actions">
+          <button className="note-btn" onClick={handleSummarize} disabled={summarizing}>
+            {summarizing ? 'Summarizing...' : summary ? 'Re-summarize' : 'Summarize'}
+          </button>
+          <button className="note-btn note-btn-delete" onClick={() => onDelete(note.id)}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotesView() {
+  const [notes, setNotes] = useState([]);
+  const [newContent, setNewContent] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    window.electronAPI.getNotes().then(n => {
+      setNotes(n);
+      setLoading(false);
+    });
+  }, []);
+
+  const addNote = async () => {
+    if (!newContent.trim()) return;
+    const note = await window.electronAPI.addNote({ content: newContent.trim() });
+    setNotes(prev => [note, ...prev]);
+    setNewContent('');
+  };
+
+  const deleteNote = async (id) => {
+    await window.electronAPI.deleteNote(id);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  const summarizeNote = async (id, content) => {
+    const summary = await window.electronAPI.claudeSummarize(content);
+    await window.electronAPI.updateNote(id, { summary });
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, summary } : n));
+    return summary;
+  };
+
+  if (loading) return <div className="placeholder"><div className="label">Loading...</div></div>;
+
+  return (
+    <div>
+      <div className="section-title">Notes — {notes.length} total</div>
+
+      <div className="note-compose">
+        <textarea
+          className="input"
+          style={{ width: '100%', height: 100, resize: 'none' }}
+          placeholder="Write a note... meeting thoughts, ideas, observations (Enter+Shift for newline, Enter to save)"
+          value={newContent}
+          onChange={e => setNewContent(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              addNote();
+            }
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+          <button className="btn btn-primary" onClick={addNote} disabled={!newContent.trim()}>
+            Save note
+          </button>
+        </div>
+      </div>
+
+      {notes.length === 0 && (
+        <div className="empty-state" style={{ marginTop: 16 }}>No notes yet. Write one above.</div>
+      )}
+
+      <div className="note-list">
+        {notes.map(n => (
+          <NoteCard key={n.id} note={n} onDelete={deleteNote} onSummarize={summarizeNote} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Placeholder({ label, phase }) {
   return (
     <div className="placeholder">
@@ -659,7 +773,7 @@ function App() {
       <div className="content">
         <div style={{ display: activeTab === 'Today' ? 'block' : 'none' }}><TodayView /></div>
         <div style={{ display: activeTab === 'Focus' ? 'block' : 'none' }}><FocusView /></div>
-        <div style={{ display: activeTab === 'Notes' ? 'block' : 'none' }}><Placeholder label="Notes with Claude summarization" phase="Phase 8" /></div>
+        <div style={{ display: activeTab === 'Notes' ? 'block' : 'none' }}><NotesView /></div>
         <div style={{ display: activeTab === 'Coach' ? 'block' : 'none' }}><CoachView /></div>
       </div>
 
