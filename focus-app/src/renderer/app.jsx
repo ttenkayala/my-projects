@@ -474,7 +474,7 @@ function CoachView() {
           <button
             key={key}
             className={`coach-tab ${mode === key ? 'active' : ''}`}
-            onClick={() => { setMode(key); setResponse(''); }}
+            onClick={() => setMode(key)}
           >
             {label}
           </button>
