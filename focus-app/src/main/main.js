@@ -56,16 +56,14 @@ app.whenReady().then(() => {
   const fs = require('fs');
   if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
 
-  const iconPath = path.join(assetsDir, 'tray-icon.png');
-  if (!fs.existsSync(iconPath)) {
-    // Write a minimal 1x1 transparent PNG as placeholder
-    const { nativeImage } = require('electron');
-    const img = nativeImage.createEmpty();
-    fs.writeFileSync(iconPath, img.toPNG());
-  }
-
   createWindow();
-  createTray();
+
+  const iconPath = path.join(assetsDir, 'tray-icon.png');
+  if (fs.existsSync(iconPath)) {
+    createTray();
+  } else {
+    console.warn('Tray icon not found — skipping tray. Add assets/tray-icon.png to enable it.');
+  }
 
   // Global shortcut: Cmd+Shift+F → quick capture
   globalShortcut.register('CmdOrCtrl+Shift+F', openQuickCapture);
