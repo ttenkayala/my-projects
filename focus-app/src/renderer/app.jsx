@@ -565,6 +565,71 @@ function timeAgo(isoString) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+// Insert markdown syntax around selection or at cursor
+function insertFormat(textarea, before, after = '') {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end);
+  const replacement = before + (selected || 'text') + after;
+  const newVal = textarea.value.slice(0, start) + replacement + textarea.value.slice(end);
+  return { value: newVal, cursor: start + before.length + (selected || 'text').length + after.length };
+}
+
+function FormatToolbar({ textareaRef, value, onChange }) {
+  const apply = (before, after = '') => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const { value: newVal, cursor } = insertFormat(ta, before, after);
+    onChange(newVal);
+    // Restore focus + cursor after React re-render
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const tools = [
+    { label: 'B',  title: 'Bold',          action: () => apply('**', '**'),   style: { fontWeight: 700 } },
+    { label: 'I',  title: 'Italic',         action: () => apply('_', '_'),     style: { fontStyle: 'italic' } },
+    { label: 'H',  title: 'Heading',        action: () => apply('## '),        style: {} },
+    { label: '•',  title: 'Bullet point',   action: () => apply('- '),         style: {} },
+    { label: '1.', title: 'Numbered list',  action: () => apply('1. '),        style: { fontFamily: 'monospace' } },
+  ];
+
+  return (
+    <div className="format-toolbar">
+      {tools.map(t => (
+        <button key={t.label} className="format-btn" title={t.title} style={t.style} onClick={t.action}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function renderMarkdown(text) {
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    // Apply inline bold + italic
+    const inline = (str) => {
+      const parts = str.split(/(\*\*[^*]+\*\*|_[^_]+_)/g);
+      return parts.map((p, j) => {
+        if (p.startsWith('**') && p.endsWith('**')) return <strong key={j}>{p.slice(2, -2)}</strong>;
+        if (p.startsWith('_') && p.endsWith('_')) return <em key={j}>{p.slice(1, -1)}</em>;
+        return p;
+      });
+    };
+
+    if (!line.trim()) return <br key={i} />;
+    if (/^### /.test(line)) return <div key={i} className="note-h3">{inline(line.slice(4))}</div>;
+    if (/^## /.test(line))  return <div key={i} className="note-h2">{inline(line.slice(3))}</div>;
+    if (/^# /.test(line))   return <div key={i} className="note-h1">{inline(line.slice(2))}</div>;
+    if (/^[\-\*] /.test(line)) return <div key={i} className="note-bullet">• {inline(line.slice(2))}</div>;
+    if (/^\d+\. /.test(line))  return <div key={i} className="note-numbered">{inline(line)}</div>;
+    return <div key={i} className="note-line">{inline(line)}</div>;
+  });
+}
+
 function NoteCard({ note, onDelete, onSummarize }) {
   const [summarizing, setSummarizing] = useState(false);
   const [summary, setSummary] = useState(note.summary || '');
@@ -578,7 +643,7 @@ function NoteCard({ note, onDelete, onSummarize }) {
 
   return (
     <div className="note-card">
-      <div className="note-content">{note.content}</div>
+      <div className="note-content">{renderMarkdown(note.content)}</div>
       {summary && (
         <div className="note-summary">
           <span className="note-summary-label">Summary</span>
@@ -602,6 +667,7 @@ function NotesView() {
   const [notes, setNotes] = useState([]);
   const [newContent, setNewContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const textareaRef = React.useRef(null);
 
   useEffect(() => {
     window.electronAPI.getNotes().then(n => {
@@ -636,10 +702,12 @@ function NotesView() {
       <div className="section-title">Notes — {notes.length} total</div>
 
       <div className="note-compose">
+        <FormatToolbar textareaRef={textareaRef} value={newContent} onChange={setNewContent} />
         <textarea
+          ref={textareaRef}
           className="input"
-          style={{ width: '100%', height: 100, resize: 'none' }}
-          placeholder="Write a note... meeting thoughts, ideas, observations (Enter+Shift for newline, Enter to save)"
+          style={{ width: '100%', height: 100, resize: 'vertical', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+          placeholder="Write a note... use toolbar for Bold, Italic, Headings, Bullets. Shift+Enter for newline, Enter to save."
           value={newContent}
           onChange={e => setNewContent(e.target.value)}
           onKeyDown={e => {

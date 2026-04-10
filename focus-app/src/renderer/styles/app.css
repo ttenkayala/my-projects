@@ -387,6 +387,30 @@ textarea.input { resize: none; }
 /* Notes */
 .note-compose { margin-bottom: 20px; }
 
+.format-toolbar {
+  display: flex;
+  gap: 2px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 5px 8px;
+}
+
+.format-btn {
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 28px;
+}
+.format-btn:hover { background: var(--border); color: var(--text); }
+
 .note-list { display: flex; flex-direction: column; gap: 10px; }
 
 .note-card {
@@ -403,9 +427,15 @@ textarea.input { resize: none; }
   font-size: 13px;
   line-height: 1.7;
   color: var(--text);
-  white-space: pre-wrap;
   word-break: break-word;
 }
+
+.note-h1 { font-size: 16px; font-weight: 700; margin: 4px 0 2px; color: var(--text); }
+.note-h2 { font-size: 14px; font-weight: 600; margin: 4px 0 2px; color: var(--text); }
+.note-h3 { font-size: 13px; font-weight: 600; margin: 4px 0 2px; color: var(--text); }
+.note-bullet   { padding-left: 12px; line-height: 1.7; }
+.note-numbered { line-height: 1.7; }
+.note-line     { line-height: 1.7; }
 
 .note-summary {
   background: var(--surface2);
