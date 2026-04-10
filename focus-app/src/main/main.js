@@ -92,6 +92,13 @@ app.whenReady().then(() => {
   const fs = require('fs');
   if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
 
+  // Set dock icon (macOS)
+  if (process.platform === 'darwin' && app.dock) {
+    const { nativeImage } = require('electron');
+    const dockIcon = nativeImage.createFromPath(path.join(assetsDir, 'app-icon.png'));
+    app.dock.setIcon(dockIcon);
+  }
+
   createWindow();
 
   const iconPath = path.join(assetsDir, 'tray-icon.png');
