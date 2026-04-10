@@ -438,7 +438,7 @@ function MarkdownText({ text }) {
   );
 }
 
-function CoachView() {
+function CoachView({ isActive }) {
   const [tasks, setTasks] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [response, setResponseRaw] = useState(() => localStorage.getItem('coach-response') || '');
@@ -461,6 +461,7 @@ function CoachView() {
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
+    if (!isActive) return;
     Promise.all([
       window.electronAPI.getTasks(),
       window.electronAPI.getSessions(today),
@@ -468,7 +469,7 @@ function CoachView() {
       setTasks(t);
       setSessions(s);
     });
-  }, []);
+  }, [isActive]);
 
   const pending = tasks.filter(t => !t.done);
 
@@ -890,7 +891,7 @@ function App() {
         <div style={{ display: activeTab === 'Today' ? 'block' : 'none' }}><TodayView /></div>
         <div style={{ display: activeTab === 'Focus' ? 'block' : 'none' }}><FocusView /></div>
         <div style={{ display: activeTab === 'Notes' ? 'block' : 'none' }}><NotesView /></div>
-        <div style={{ display: activeTab === 'Coach' ? 'block' : 'none' }}><CoachView /></div>
+        <div style={{ display: activeTab === 'Coach' ? 'block' : 'none' }}><CoachView isActive={activeTab === 'Coach'} /></div>
       </div>
 
       {showCapture && <QuickCapture onClose={closeCapture} />}
