@@ -1,20 +1,42 @@
 {
   "name": "holocron",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Holocron — your personal Jedi productivity system. Notes, todos, focus timer, and Claude coaching.",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "dist": "electron-builder --mac"
   },
   "keywords": [],
   "author": "ttenkayala",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.87.0",
     "dotenv": "^16.4.1"
+  },
+  "build": {
+    "appId": "com.ttenkayala.holocron",
+    "productName": "Holocron",
+    "copyright": "Copyright © 2026 ttenkayala",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "assets/holocron.icns",
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "dmg", "arch": ["arm64"] }]
+    },
+    "dmg": {
+      "title": "Holocron",
+      "icon": "assets/holocron.icns"
+    }
   }
 }
