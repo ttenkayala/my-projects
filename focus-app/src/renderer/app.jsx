@@ -393,12 +393,22 @@ function MarkdownText({ text }) {
 function CoachView() {
   const [tasks, setTasks] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [response, setResponse] = useState('');
+  const [response, setResponseRaw] = useState(() => localStorage.getItem('coach-response') || '');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState('kickoff'); // kickoff | review | draft
+  const [mode, setModeRaw] = useState(() => localStorage.getItem('coach-mode') || 'kickoff');
   const [hasKey, setHasKey] = useState(true);
   const [draftContext, setDraftContext] = useState('');
   const [draftChannel, setDraftChannel] = useState('slack');
+
+  const setResponse = (text) => {
+    setResponseRaw(text);
+    localStorage.setItem('coach-response', text);
+  };
+
+  const setMode = (m) => {
+    setModeRaw(m);
+    localStorage.setItem('coach-mode', m);
+  };
 
   const today = new Date().toISOString().slice(0, 10);
 
