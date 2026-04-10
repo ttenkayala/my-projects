@@ -139,7 +139,8 @@ ipcMain.on('notify', (event, { title, body }) => {
 ipcMain.handle('tasks:get',    () => store.getTasks());
 ipcMain.handle('tasks:add',    (_, task) => store.addTask(task));
 ipcMain.handle('tasks:update', (_, id, changes) => store.updateTask(id, changes));
-ipcMain.handle('tasks:delete', (_, id) => store.deleteTask(id));
+ipcMain.handle('tasks:delete',  (_, id) => store.deleteTask(id));
+ipcMain.handle('tasks:reorder', (_, ids) => store.reorderTasks(ids));
 
 // IPC: notes
 ipcMain.handle('notes:get',    () => store.getNotes());
@@ -174,4 +175,7 @@ ipcMain.handle('claude:draft', async (_, payload) => {
 });
 ipcMain.handle('claude:summarize', async (_, content) => {
   return claude.ask(claude.summarizePrompt(content));
+});
+ipcMain.handle('claude:followup', async (_, { prompt, history, model }) => {
+  return claude.ask(prompt, { history, model });
 });

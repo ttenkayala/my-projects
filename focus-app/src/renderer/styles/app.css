@@ -384,6 +384,81 @@ textarea.input { resize: none; }
 .coach-numbered { font-size: 13px; color: var(--text); line-height: 1.6; }
 .coach-line     { font-size: 13px; color: var(--text); line-height: 1.6; }
 
+/* Drag handle */
+.drag-handle {
+  cursor: grab;
+  color: var(--border);
+  font-size: 14px;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.task-item:hover .drag-handle { color: var(--text-muted); }
+
+/* Inline edit */
+.task-edit-input {
+  flex: 1;
+  padding: 2px 6px;
+  font-size: 14px;
+  height: 28px;
+}
+
+/* Due date */
+.due-badge {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.due-badge.overdue { color: var(--red); font-weight: 600; }
+
+.due-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.task-item:hover .due-btn { opacity: 1; }
+
+.due-input {
+  width: 130px;
+  padding: 3px 6px;
+  font-size: 12px;
+  position: absolute;
+  z-index: 10;
+  background: var(--surface2);
+}
+
+.task-item { position: relative; }
+.task-item.overdue { border-color: rgba(239,68,68,0.4); }
+
+/* Timer settings */
+.timer-settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.timer-settings label { display: flex; align-items: center; gap: 6px; }
+.timer-settings .input { padding: 4px 6px; text-align: center; }
+
+/* Coach follow-up */
+.followup-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* Drift detection */
 .drift-box {
   margin-top: 28px;

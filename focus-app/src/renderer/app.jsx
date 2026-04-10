@@ -1,38 +1,91 @@
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useCallback, useRef } = React;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const PRIORITY_CYCLE = { high: 'med', med: 'low', low: 'high' };
 
+function isOverdue(dueDate) {
+  if (!dueDate) return false;
+  return new Date(dueDate) < new Date(new Date().toDateString());
+}
+
 function PriorityBadge({ level, onClick }) {
   const cls = level === 'high' ? 'priority-high' : level === 'med' ? 'priority-med' : 'priority-low';
   return (
-    <button
-      className={`priority-badge ${cls}`}
-      onClick={onClick}
-      title="Click to change priority"
-    >
+    <button className={`priority-badge ${cls}`} onClick={onClick} title="Click to change priority">
       {level}
     </button>
   );
 }
 
-function TaskItem({ task, onToggle, onDelete, onPriority }) {
+function TaskItem({ task, onToggle, onDelete, onPriority, onEdit, onDueDate, onDragStart, onDragOver, onDrop }) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(task.title);
+  const [showDate, setShowDate] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commitEdit = async () => {
+    setEditing(false);
+    if (editVal.trim() && editVal !== task.title) onEdit(task.id, editVal.trim());
+    else setEditVal(task.title);
+  };
+
+  const overdue = isOverdue(task.dueDate) && !task.done;
+
   return (
-    <div className={`task-item ${task.done ? 'done' : ''}`}>
+    <div
+      className={`task-item ${task.done ? 'done' : ''} ${overdue ? 'overdue' : ''}`}
+      draggable={!task.done}
+      onDragStart={() => onDragStart(task.id)}
+      onDragOver={e => { e.preventDefault(); onDragOver(task.id); }}
+      onDrop={() => onDrop(task.id)}
+    >
+      <span className="drag-handle" title="Drag to reorder">⠿</span>
       <button
         className={`task-check ${task.done ? 'checked' : ''}`}
         onClick={() => onToggle(task.id, !task.done)}
-        title={task.done ? 'Mark incomplete' : 'Mark complete'}
       >
         {task.done && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
       </button>
-      <span className="task-title">{task.title}</span>
-      <PriorityBadge
-        level={task.priority}
-        onClick={() => onPriority(task.id, PRIORITY_CYCLE[task.priority])}
-      />
-      <button className="task-delete" onClick={() => onDelete(task.id)} title="Delete task">×</button>
+
+      {editing ? (
+        <input
+          ref={inputRef}
+          className="input task-edit-input"
+          value={editVal}
+          onChange={e => setEditVal(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { setEditing(false); setEditVal(task.title); } }}
+        />
+      ) : (
+        <span className="task-title" onDoubleClick={() => !task.done && setEditing(true)} title="Double-click to edit">
+          {task.title}
+        </span>
+      )}
+
+      {task.dueDate && (
+        <span className={`due-badge ${overdue ? 'overdue' : ''}`}>
+          {overdue ? '⚠ ' : ''}{task.dueDate}
+        </span>
+      )}
+
+      <button className="due-btn" onClick={() => setShowDate(v => !v)} title="Set due date">📅</button>
+
+      {showDate && (
+        <input
+          type="date"
+          className="input due-input"
+          value={task.dueDate || ''}
+          onChange={e => { onDueDate(task.id, e.target.value || null); setShowDate(false); }}
+          onBlur={() => setShowDate(false)}
+          autoFocus
+        />
+      )}
+
+      <PriorityBadge level={task.priority} onClick={() => onPriority(task.id, PRIORITY_CYCLE[task.priority])} />
+      <button className="task-delete" onClick={() => onDelete(task.id)} title="Delete">×</button>
     </div>
   );
 }
@@ -40,14 +93,14 @@ function TaskItem({ task, onToggle, onDelete, onPriority }) {
 function TodayView() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [newDue, setNewDue] = useState('');
   const [priority, setPriority] = useState('med');
   const [loading, setLoading] = useState(true);
+  const dragId = useRef(null);
+  const dragOverId = useRef(null);
 
   useEffect(() => {
-    window.electronAPI.getTasks().then(t => {
-      setTasks(t);
-      setLoading(false);
-    });
+    window.electronAPI.getTasks().then(t => { setTasks(t); setLoading(false); });
   }, []);
 
   const toggleTask = async (id, done) => {
@@ -65,16 +118,43 @@ function TodayView() {
     setTasks(prev => prev.map(t => t.id === id ? updated : t));
   };
 
+  const editTask = async (id, title) => {
+    const updated = await window.electronAPI.updateTask(id, { title });
+    setTasks(prev => prev.map(t => t.id === id ? updated : t));
+  };
+
+  const setDueDate = async (id, dueDate) => {
+    const updated = await window.electronAPI.updateTask(id, { dueDate });
+    setTasks(prev => prev.map(t => t.id === id ? updated : t));
+  };
+
   const addTask = async () => {
     if (!newTask.trim()) return;
-    const task = await window.electronAPI.addTask({ title: newTask.trim(), priority });
+    const task = await window.electronAPI.addTask({ title: newTask.trim(), priority, dueDate: newDue || null });
     setTasks(prev => [...prev, task]);
-    setNewTask('');
-    setPriority('med');
+    setNewTask(''); setNewDue(''); setPriority('med');
+  };
+
+  // Drag-to-reorder
+  const handleDragStart = (id) => { dragId.current = id; };
+  const handleDragOver  = (id) => { dragOverId.current = id; };
+  const handleDrop      = async () => {
+    if (!dragId.current || dragId.current === dragOverId.current) return;
+    const pending = tasks.filter(t => !t.done);
+    const from = pending.findIndex(t => t.id === dragId.current);
+    const to   = pending.findIndex(t => t.id === dragOverId.current);
+    if (from === -1 || to === -1) return;
+    const reordered = [...pending];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    const done = tasks.filter(t => t.done);
+    setTasks([...reordered, ...done]);
+    await window.electronAPI.reorderTasks(reordered.map(t => t.id));
+    dragId.current = null; dragOverId.current = null;
   };
 
   const pending = tasks.filter(t => !t.done);
-  const done = tasks.filter(t => t.done);
+  const done    = tasks.filter(t => t.done);
 
   if (loading) return <div className="placeholder"><div className="label">Loading...</div></div>;
 
@@ -82,31 +162,27 @@ function TodayView() {
     <div>
       <div className="section-title">Today — {pending.length} remaining</div>
 
-      {pending.length === 0 && (
-        <div className="empty-state">All done! Add a task below or enjoy the moment.</div>
-      )}
+      {pending.length === 0 && <div className="empty-state">All done! Add a task below.</div>}
 
       <div className="task-list">
-        {pending.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority} />)}
+        {pending.map(t => (
+          <TaskItem key={t.id} task={t}
+            onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority}
+            onEdit={editTask} onDueDate={setDueDate}
+            onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
+          />
+        ))}
       </div>
 
-      <div className="add-task-row">
-        <input
-          className="input"
-          placeholder="Add a task..."
-          value={newTask}
-          onChange={e => setNewTask(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addTask()}
-        />
-        <select
-          className="select"
-          value={priority}
-          onChange={e => setPriority(e.target.value)}
-        >
+      <div className="add-task-row" style={{ flexWrap: 'wrap', gap: 6 }}>
+        <input className="input" style={{ flex: 1, minWidth: 180 }} placeholder="Add a task..."
+          value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} />
+        <select className="select" value={priority} onChange={e => setPriority(e.target.value)}>
           <option value="high">High</option>
           <option value="med">Med</option>
           <option value="low">Low</option>
         </select>
+        <input type="date" className="input" style={{ width: 140 }} value={newDue} onChange={e => setNewDue(e.target.value)} />
         <button className="btn btn-primary" onClick={addTask}>Add</button>
       </div>
 
@@ -114,7 +190,13 @@ function TodayView() {
         <>
           <div className="section-title" style={{ marginTop: 28 }}>Completed — {done.length}</div>
           <div className="task-list">
-            {done.map(t => <TaskItem key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority} />)}
+            {done.map(t => (
+              <TaskItem key={t.id} task={t}
+                onToggle={toggleTask} onDelete={deleteTask} onPriority={changePriority}
+                onEdit={editTask} onDueDate={setDueDate}
+                onDragStart={() => {}} onDragOver={() => {}} onDrop={() => {}}
+              />
+            ))}
           </div>
         </>
       )}
@@ -124,8 +206,8 @@ function TodayView() {
 
 // ── Focus / Pomodoro ──────────────────────────────────────────────────────────
 
-const WORK_MINS = 25;
-const BREAK_MINS = 5;
+const DEFAULT_WORK_MINS  = 25;
+const DEFAULT_BREAK_MINS = 5;
 
 function fmt(seconds) {
   const m = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -178,11 +260,14 @@ function CheckInModal({ taskTitle, onDone }) {
 function FocusView() {
   const [tasks, setTasks] = useState([]);
   const [selectedId, setSelectedId] = useState('');
-  const [phase, setPhase] = useState('idle'); // idle | work | break
-  const [seconds, setSeconds] = useState(WORK_MINS * 60);
+  const [phase, setPhase] = useState('idle');
   const [pomosToday, setPomosToday] = useState(0);
   const [sessions, setSessions] = useState([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [workMins, setWorkMins]   = useState(() => parseInt(localStorage.getItem('workMins')  || DEFAULT_WORK_MINS));
+  const [breakMins, setBreakMins] = useState(() => parseInt(localStorage.getItem('breakMins') || DEFAULT_BREAK_MINS));
+  const [seconds, setSeconds] = useState(workMins * 60);
   const intervalRef = React.useRef(null);
 
   const today = todayStr();
@@ -205,18 +290,21 @@ function FocusView() {
     intervalRef.current = null;
   };
 
+  const saveTimerSettings = (w, b) => {
+    localStorage.setItem('workMins', w);
+    localStorage.setItem('breakMins', b);
+    setWorkMins(w); setBreakMins(b);
+    if (phase === 'idle') setSeconds(w * 60);
+  };
+
   const startWork = () => {
     if (!selectedId) return;
     setPhase('work');
-    setSeconds(WORK_MINS * 60);
+    setSeconds(workMins * 60);
     clearTimer();
     intervalRef.current = setInterval(() => {
       setSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          setShowCheckIn(true);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(intervalRef.current); setShowCheckIn(true); return 0; }
         return prev - 1;
       });
     }, 1000);
@@ -224,14 +312,14 @@ function FocusView() {
 
   const startBreak = () => {
     setPhase('break');
-    setSeconds(BREAK_MINS * 60);
+    setSeconds(breakMins * 60);
     clearTimer();
     intervalRef.current = setInterval(() => {
       setSeconds(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
           setPhase('idle');
-          setSeconds(WORK_MINS * 60);
+          setSeconds(workMins * 60);
           window.electronAPI.notify('Break over!', 'Ready for your next pomodoro?');
           return 0;
         }
@@ -242,41 +330,29 @@ function FocusView() {
 
   const pause = () => {
     if (intervalRef.current) {
-      clearTimer();
-      setPhase('paused');
+      clearTimer(); setPhase('paused');
     } else {
       setPhase('work');
       intervalRef.current = setInterval(() => {
         setSeconds(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setShowCheckIn(true);
-            return 0;
-          }
+          if (prev <= 1) { clearInterval(intervalRef.current); setShowCheckIn(true); return 0; }
           return prev - 1;
         });
       }, 1000);
     }
   };
 
-  const stop = () => {
-    clearTimer();
-    setPhase('idle');
-    setSeconds(WORK_MINS * 60);
-  };
+  const stop = () => { clearTimer(); setPhase('idle'); setSeconds(workMins * 60); };
 
   const handleCheckIn = async ({ reflection, interrupted }) => {
     setShowCheckIn(false);
     const session = await window.electronAPI.addSession({
-      taskId: selectedId,
-      taskTitle: selectedTask?.title || '',
-      durationMinutes: WORK_MINS,
-      reflection,
-      interrupted,
+      taskId: selectedId, taskTitle: selectedTask?.title || '',
+      durationMinutes: workMins, reflection, interrupted,
     });
     setSessions(prev => [session, ...prev]);
     setPomosToday(prev => prev + 1);
-    window.electronAPI.notify('Pomodoro logged!', `${pomosToday + 1} today. Take a ${BREAK_MINS}-min break.`);
+    window.electronAPI.notify('Pomodoro logged!', `${pomosToday + 1} today. Take a ${breakMins}-min break.`);
     startBreak();
   };
 
@@ -287,7 +363,26 @@ function FocusView() {
 
   return (
     <div>
-      <div className="section-title">Focus — {pomosToday} pomodoro{pomosToday !== 1 ? 's' : ''} today</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div className="section-title" style={{ marginBottom: 0 }}>Focus — {pomosToday} pomodoro{pomosToday !== 1 ? 's' : ''} today</div>
+        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }}
+          onClick={() => setShowSettings(v => !v)} disabled={phase !== 'idle'}>
+          ⚙ Timer settings
+        </button>
+      </div>
+
+      {showSettings && (
+        <div className="timer-settings">
+          <label>Work <input type="number" className="input" style={{ width: 60 }} min={1} max={120}
+            value={workMins} onChange={e => setWorkMins(+e.target.value)} /> min</label>
+          <label>Break <input type="number" className="input" style={{ width: 60 }} min={1} max={60}
+            value={breakMins} onChange={e => setBreakMins(+e.target.value)} /> min</label>
+          <button className="btn btn-primary" style={{ fontSize: 12 }}
+            onClick={() => { saveTimerSettings(workMins, breakMins); setShowSettings(false); }}>
+            Save
+          </button>
+        </div>
+      )}
 
       {/* Task selector */}
       <div style={{ marginBottom: 24 }}>
@@ -447,6 +542,8 @@ function CoachView({ isActive }) {
   const [hasKey, setHasKey] = useState(true);
   const [draftContext, setDraftContext] = useState('');
   const [draftChannel, setDraftChannel] = useState('slack');
+  const [history, setHistory] = useState([]); // conversation memory
+  const [followUp, setFollowUp] = useState('');
 
   const setResponse = (text) => {
     setResponseRaw(text);
@@ -456,6 +553,7 @@ function CoachView({ isActive }) {
   const setMode = (m) => {
     setModeRaw(m);
     localStorage.setItem('coach-mode', m);
+    setHistory([]); // clear memory on mode switch
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -473,45 +571,56 @@ function CoachView({ isActive }) {
 
   const pending = tasks.filter(t => !t.done);
 
+  const handleClaudeResponse = (prompt, text) => {
+    const newHistory = [
+      ...history,
+      { role: 'user', content: prompt },
+      { role: 'assistant', content: text },
+    ];
+    setHistory(newHistory);
+    setResponse(text);
+  };
+
   const runKickoff = async () => {
     if (pending.length === 0) {
       setResponse('No pending tasks. Add some in the Today tab first, then come back for your kickoff.');
       return;
     }
-    setLoading(true);
-    setResponse('');
+    setLoading(true); setResponse('');
     try {
       const text = await window.electronAPI.claudeKickoff(pending);
-      setResponse(text);
-    } catch (e) {
-      setHasKey(false);
-      setResponse(`Error: ${e.message}`);
-    }
+      handleClaudeResponse('morning kickoff', text);
+    } catch (e) { setHasKey(false); setResponse(`Error: ${e.message}`); }
     setLoading(false);
   };
 
   const runReview = async () => {
-    setLoading(true);
-    setResponse('');
+    setLoading(true); setResponse('');
     try {
       const text = await window.electronAPI.claudeReview({ tasks, sessions });
-      setResponse(text);
-    } catch (e) {
-      setResponse(`Error: ${e.message}`);
-    }
+      handleClaudeResponse('end of day review', text);
+    } catch (e) { setResponse(`Error: ${e.message}`); }
     setLoading(false);
   };
 
   const runDraft = async () => {
     if (!draftContext.trim()) return;
-    setLoading(true);
-    setResponse('');
+    setLoading(true); setResponse('');
     try {
       const text = await window.electronAPI.claudeDraft({ channel: draftChannel, context: draftContext });
-      setResponse(text);
-    } catch (e) {
-      setResponse(`Error: ${e.message}`);
-    }
+      handleClaudeResponse(draftContext, text);
+    } catch (e) { setResponse(`Error: ${e.message}`); }
+    setLoading(false);
+  };
+
+  const runFollowUp = async () => {
+    if (!followUp.trim() || !history.length) return;
+    setLoading(true);
+    try {
+      const text = await window.electronAPI.claudeFollowup(followUp.trim(), history);
+      handleClaudeResponse(followUp.trim(), text);
+      setFollowUp('');
+    } catch (e) { setResponse(`Error: ${e.message}`); }
     setLoading(false);
   };
 
@@ -591,12 +700,32 @@ function CoachView({ isActive }) {
       {response && (
         <div className="coach-response-wrap">
           <MarkdownText text={response} />
-          <button
-            className="btn btn-ghost"
-            style={{ marginTop: 12, fontSize: 12 }}
-            onClick={() => navigator.clipboard.writeText(response)}
-          >
-            Copy
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button className="btn btn-ghost" style={{ fontSize: 12 }}
+              onClick={() => navigator.clipboard.writeText(response)}>
+              Copy
+            </button>
+            <button className="btn btn-ghost" style={{ fontSize: 12 }}
+              onClick={() => { setResponse(''); setHistory([]); }}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Follow-up input — only shown after first response */}
+      {history.length > 0 && (
+        <div className="followup-row">
+          <input
+            className="input"
+            placeholder="Ask a follow-up..."
+            value={followUp}
+            onChange={e => setFollowUp(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && runFollowUp()}
+            disabled={loading}
+          />
+          <button className="btn btn-primary" onClick={runFollowUp} disabled={loading || !followUp.trim()}>
+            {loading ? '...' : 'Ask'}
           </button>
         </div>
       )}
@@ -716,6 +845,7 @@ function NotesView() {
   const [notes, setNotes] = useState([]);
   const [newContent, setNewContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const textareaRef = React.useRef(null);
 
   useEffect(() => {
@@ -748,7 +878,16 @@ function NotesView() {
 
   return (
     <div>
-      <div className="section-title">Notes — {notes.length} total</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="section-title" style={{ marginBottom: 0 }}>Notes — {notes.length} total</div>
+        <input
+          className="input"
+          style={{ width: 200, fontSize: 12, padding: '5px 10px' }}
+          placeholder="Search notes..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
 
       <div className="note-compose">
         <FormatToolbar textareaRef={textareaRef} value={newContent} onChange={setNewContent} />
@@ -778,7 +917,7 @@ function NotesView() {
       )}
 
       <div className="note-list">
-        {notes.map(n => (
+        {notes.filter(n => !search || n.content.toLowerCase().includes(search.toLowerCase())).map(n => (
           <NoteCard key={n.id} note={n} onDelete={deleteNote} onSummarize={summarizeNote} />
         ))}
       </div>

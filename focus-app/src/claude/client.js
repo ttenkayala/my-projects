@@ -49,13 +49,14 @@ function draftPrompt({ channel, context, tone }) {
 
 // ── API call ──────────────────────────────────────────────────────────────────
 
-async function ask(userPrompt, { model = 'claude-haiku-4-5-20251001' } = {}) {
+async function ask(userPrompt, { model = 'claude-haiku-4-5-20251001', history = [] } = {}) {
   const client = getClient();
+  const messages = [...history, { role: 'user', content: userPrompt }];
   const msg = await client.messages.create({
     model,
     max_tokens: 1024,
     system: SYSTEM,
-    messages: [{ role: 'user', content: userPrompt }],
+    messages,
   });
   return msg.content[0].text;
 }

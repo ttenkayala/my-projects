@@ -31,16 +31,26 @@ function uid() {
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
 function getTasks() {
-  return read().tasks;
+  const data = read();
+  // Ensure all tasks have an order field
+  let dirty = false;
+  data.tasks.forEach((t, i) => {
+    if (t.order === undefined) { t.order = i; dirty = true; }
+  });
+  if (dirty) write(data);
+  return data.tasks.sort((a, b) => a.order - b.order);
 }
 
-function addTask({ title, priority = 'med' }) {
+function addTask({ title, priority = 'med', dueDate = null }) {
   const data = read();
+  const maxOrder = data.tasks.reduce((m, t) => Math.max(m, t.order ?? 0), -1);
   const task = {
     id: uid(),
     title,
     priority,
+    dueDate,
     done: false,
+    order: maxOrder + 1,
     createdAt: new Date().toISOString(),
     completedAt: null,
     carriedOverCount: 0,
@@ -68,6 +78,15 @@ function updateTask(id, changes) {
 function deleteTask(id) {
   const data = read();
   data.tasks = data.tasks.filter(t => t.id !== id);
+  write(data);
+}
+
+function reorderTasks(orderedIds) {
+  const data = read();
+  orderedIds.forEach((id, i) => {
+    const task = data.tasks.find(t => t.id === id);
+    if (task) task.order = i;
+  });
   write(data);
 }
 
@@ -133,4 +152,4 @@ function addFocusSession({ taskId, taskTitle, durationMinutes, reflection, inter
   return session;
 }
 
-module.exports = { getTasks, addTask, updateTask, deleteTask, getNotes, addNote, updateNote, deleteNote, getFocusSessions, addFocusSession };
+module.exports = { getTasks, addTask, updateTask, deleteTask, reorderTasks, getNotes, addNote, updateNote, deleteNote, getFocusSessions, addFocusSession };
