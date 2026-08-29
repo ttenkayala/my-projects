@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: turo-integrator
+    orgId: 1
+    folder: Turo Integrator
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /usr/local/etc/grafana/turo-dashboards

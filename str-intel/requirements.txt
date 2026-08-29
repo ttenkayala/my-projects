@@ -1,0 +1,6 @@
+duckdb==1.2.2
+pandas
+requests
+fastapi
+uvicorn[standard]
+python-dotenv

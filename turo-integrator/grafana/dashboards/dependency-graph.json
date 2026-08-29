@@ -1,0 +1,165 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "turo-integrator" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 20, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "edges": {},
+        "nodes": {}
+      },
+      "targets": [
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.nodes[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.nodes[*].title", "name": "title", "type": "string" },
+            { "jsonPath": "$.nodes[*].mainStat", "name": "mainStat", "type": "string" },
+            { "jsonPath": "$.nodes[*].color", "name": "color", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "nodes",
+          "urlPath": "/graph/jenkins"
+        },
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.edges[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.edges[*].source", "name": "source", "type": "string" },
+            { "jsonPath": "$.edges[*].target", "name": "target", "type": "string" },
+            { "jsonPath": "$.edges[*].mainStat", "name": "mainStat", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "edges",
+          "urlPath": "/graph/jenkins"
+        }
+      ],
+      "title": "Jenkins Job Dependencies",
+      "type": "nodeGraph"
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "turo-integrator" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 20, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "edges": {},
+        "nodes": {}
+      },
+      "targets": [
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.nodes[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.nodes[*].title", "name": "title", "type": "string" },
+            { "jsonPath": "$.nodes[*].mainStat", "name": "mainStat", "type": "string" },
+            { "jsonPath": "$.nodes[*].color", "name": "color", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "nodes",
+          "urlPath": "/graph/airflow"
+        },
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.edges[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.edges[*].source", "name": "source", "type": "string" },
+            { "jsonPath": "$.edges[*].target", "name": "target", "type": "string" },
+            { "jsonPath": "$.edges[*].mainStat", "name": "mainStat", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "edges",
+          "urlPath": "/graph/airflow"
+        }
+      ],
+      "title": "Airflow DAG Dependencies",
+      "type": "nodeGraph"
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "turo-integrator" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "purple", "mode": "fixed" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 20 },
+      "id": 3,
+      "options": {
+        "edges": {},
+        "nodes": {}
+      },
+      "targets": [
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.nodes[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.nodes[*].title", "name": "title", "type": "string" },
+            { "jsonPath": "$.nodes[*].mainStat", "name": "mainStat", "type": "string" },
+            { "jsonPath": "$.nodes[*].color", "name": "color", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "nodes",
+          "urlPath": "/graph/combined"
+        },
+        {
+          "cacheDurationSeconds": 300,
+          "fields": [
+            { "jsonPath": "$.edges[*].id", "name": "id", "type": "string" },
+            { "jsonPath": "$.edges[*].source", "name": "source", "type": "string" },
+            { "jsonPath": "$.edges[*].target", "name": "target", "type": "string" },
+            { "jsonPath": "$.edges[*].mainStat", "name": "mainStat", "type": "string" }
+          ],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "edges",
+          "urlPath": "/graph/combined"
+        }
+      ],
+      "title": "Combined: Jenkins + Airflow",
+      "type": "nodeGraph"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 38,
+  "tags": ["turo", "integrator", "dependencies"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Turo Integrator — Dependency Graph",
+  "uid": "turo-dep-graph",
+  "version": 1
+}

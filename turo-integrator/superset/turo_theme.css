@@ -1,0 +1,234 @@
+/* ============================================================
+   Turo Brand Theme for Apache Superset
+   Brand: #593cfb (purple), #121214 (near-black), #ffffff (white)
+   Font: Basis Grotesque → Avenir → Helvetica Neue → sans-serif
+   ============================================================ */
+
+/* ── Google Fonts fallback (Basis Grotesque is proprietary) ── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap');
+
+:root {
+  --turo-purple:       #593cfb;
+  --turo-purple-light: #7b63fc;
+  --turo-purple-dark:  #3d22e0;
+  --turo-black:        #121214;
+  --turo-gray-dark:    #414143;
+  --turo-gray-mid:     #6b6b6e;
+  --turo-gray-light:   #f4f4f6;
+  --turo-white:        #ffffff;
+  --turo-success:      #1a9e6e;
+  --turo-warning:      #f5a623;
+  --turo-danger:       #e63946;
+}
+
+/* ── Base typography ─────────────────────────────────────────── */
+body, html, * {
+  font-family: 'DM Sans', 'Basis Grotesque', Avenir, 'Helvetica Neue', Helvetica, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Top navigation bar ──────────────────────────────────────── */
+.navbar,
+.ant-layout-header,
+header.ant-layout-header {
+  background-color: var(--turo-black) !important;
+  border-bottom: 3px solid var(--turo-purple) !important;
+}
+
+.navbar-brand,
+.navbar-brand img {
+  filter: brightness(0) invert(1);
+}
+
+/* Nav links */
+.navbar .nav-link,
+.navbar a,
+.ant-menu-item a,
+.ant-menu-horizontal > .ant-menu-item > a {
+  color: var(--turo-white) !important;
+  font-weight: 500;
+}
+
+.navbar .nav-link:hover,
+.ant-menu-item:hover > a {
+  color: var(--turo-purple-light) !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.ant-layout-sider,
+.sidebar {
+  background-color: var(--turo-black) !important;
+}
+
+.ant-menu-dark,
+.ant-menu-dark .ant-menu-sub {
+  background-color: var(--turo-black) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-dark .ant-menu-item-active {
+  background-color: var(--turo-purple) !important;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-primary,
+.ant-btn-primary,
+button.ant-btn-primary {
+  background-color: var(--turo-purple) !important;
+  border-color: var(--turo-purple) !important;
+  color: var(--turo-white) !important;
+  font-weight: 600;
+  border-radius: 6px !important;
+}
+
+.btn-primary:hover,
+.ant-btn-primary:hover {
+  background-color: var(--turo-purple-dark) !important;
+  border-color: var(--turo-purple-dark) !important;
+}
+
+.btn-secondary,
+.ant-btn-default {
+  border-color: var(--turo-purple) !important;
+  color: var(--turo-purple) !important;
+  border-radius: 6px !important;
+}
+
+.btn-secondary:hover,
+.ant-btn-default:hover {
+  background-color: var(--turo-gray-light) !important;
+}
+
+/* ── Page background & cards ─────────────────────────────────── */
+body,
+.dashboard,
+.ant-layout-content {
+  background-color: var(--turo-gray-light) !important;
+}
+
+.chart-container,
+.slice_container,
+.dashboard-component-chart-holder,
+.panel,
+.card,
+.ant-card {
+  background-color: var(--turo-white) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(18, 18, 20, 0.08) !important;
+  border: none !important;
+}
+
+/* ── Dashboard title & headings ──────────────────────────────── */
+.dashboard-title,
+.title-panel,
+h1, h2, h3, h4, h5 {
+  color: var(--turo-black) !important;
+  font-weight: 700 !important;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs-tab-active {
+  color: var(--turo-purple) !important;
+  font-weight: 700 !important;
+}
+
+.ant-tabs-ink-bar {
+  background-color: var(--turo-purple) !important;
+}
+
+.ant-tabs-tab:hover {
+  color: var(--turo-purple-light) !important;
+}
+
+/* ── Links ───────────────────────────────────────────────────── */
+a, a:visited {
+  color: var(--turo-purple) !important;
+}
+
+a:hover {
+  color: var(--turo-purple-dark) !important;
+  text-decoration: underline;
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
+.ant-table-thead > tr > th {
+  background-color: var(--turo-black) !important;
+  color: var(--turo-white) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: rgba(89, 60, 251, 0.06) !important;
+}
+
+.ant-table-tbody > tr:nth-child(even) > td {
+  background-color: rgba(89, 60, 251, 0.02) !important;
+}
+
+/* ── Form inputs ─────────────────────────────────────────────── */
+.ant-input,
+.ant-select-selector,
+.form-control {
+  border-color: #d9d9d9 !important;
+  border-radius: 6px !important;
+}
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--turo-purple) !important;
+  box-shadow: 0 0 0 2px rgba(89, 60, 251, 0.15) !important;
+}
+
+/* ── Metric/Stat numbers ─────────────────────────────────────── */
+.metric-value,
+.chart-label,
+.faded {
+  color: var(--turo-black) !important;
+}
+
+/* ── Filter bar ──────────────────────────────────────────────── */
+.filter-bar,
+.ant-collapse-header {
+  background-color: var(--turo-white) !important;
+  border-color: var(--turo-gray-light) !important;
+}
+
+/* ── Status badges ───────────────────────────────────────────── */
+.label-success, .badge-success { background-color: var(--turo-success) !important; }
+.label-warning, .badge-warning { background-color: var(--turo-warning) !important; }
+.label-danger,  .badge-danger  { background-color: var(--turo-danger)  !important; }
+
+/* ── Welcome / login page ────────────────────────────────────── */
+.login-container,
+.login-form-container {
+  background-color: var(--turo-white) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 24px rgba(18, 18, 20, 0.12) !important;
+}
+
+.login-container .btn-primary {
+  background-color: var(--turo-purple) !important;
+  border-color: var(--turo-purple) !important;
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ── Chart tooltip ───────────────────────────────────────────── */
+.tooltip,
+.ant-tooltip-inner {
+  background-color: var(--turo-black) !important;
+  color: var(--turo-white) !important;
+  border-radius: 6px !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--turo-gray-light); }
+::-webkit-scrollbar-thumb { background: var(--turo-purple); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--turo-purple-dark); }
