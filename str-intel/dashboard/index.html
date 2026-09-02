@@ -222,7 +222,10 @@
       </table>
 
       <div class="chart-wrap" style="margin-top: 24px;">
-        <h2 style="margin-top:0; margin-bottom: 16px;">Listing detail</h2>
+        <h2 style="margin-top:0; margin-bottom: 8px;">Listing detail</h2>
+        <div id="listing-context" style="background: rgba(96, 165, 250, 0.1); border-left: 3px solid var(--accent-2); padding: 12px 14px; margin-bottom: 16px; border-radius: 6px; font-size: 14px;">
+          <strong>📍 Selected area:</strong> <span id="context-market">—</span> > <span id="context-neighbourhood">—</span>
+        </div>
         <div class="filters" style="margin-bottom: 16px; gap: 10px; flex-wrap: wrap;">
           <input id="filter-nightly-min" type="number" step="10" value="0" placeholder="Min nightly $" style="width:130px;" />
           <input id="filter-nightly-max" type="number" step="10" placeholder="Max nightly $" style="width:130px;" />
@@ -254,6 +257,8 @@
       let allListings = [];
       let currentSortField = 'est_monthly_revenue';
       let currentSortDir = 'desc';
+      let currentMarketContext = '';
+      let currentNeighbourhoodContext = '';
 
       function setActionableSummary(rows) {
         const totalMarkets = rows.length ? new Set(rows.map(r => r.source_market)).size : 0;
@@ -329,6 +334,13 @@
       }
 
       async function fetchMarketDetails(marketName, neighbourhoodName) {
+        currentMarketContext = marketName || 'All';
+        currentNeighbourhoodContext = neighbourhoodName || 'All neighborhoods';
+        
+        // Update context display
+        document.getElementById('context-market').textContent = marketName || 'All markets';
+        document.getElementById('context-neighbourhood').textContent = neighbourhoodName || 'All neighborhoods';
+        
         const params = new URLSearchParams({ limit: '25' });
         if (marketName) params.set('market', marketName);
         if (neighbourhoodName) params.set('neighbourhood', neighbourhoodName);

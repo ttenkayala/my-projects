@@ -1,16 +1,29 @@
 # STR Intel — Next steps
 
-## 1) Fix the attraction / POI layer before using it for decisions
+## Current status
 
-The current distance-to-attraction field is not trustworthy enough for analytics decisions. It is based on a small hardcoded demo list, not a real or curated POI database.
+Completed in the current prototype:
+- CSV-backed POI loading and haversine nearest-distance calculation
+- tourism/demographic reference data for selected LA and SD neighborhoods
+- listing names and pricing-driver fields in the listing detail view
+- listing filters, sorting, and selected market/neighborhood context
+- pipeline and API regression checks passing
+
+The data and scores are still decision-support prototypes. Do not treat proxy tourism figures, fallback prices, or estimated occupancy as authoritative.
+
+## 1) Replace proxy tourism and POI data with authoritative sources
+
+The current distance-to-attraction field now reads from data/poi/attractions.csv, but the file is still small and curated. Tourism data in data/raw/tourism_demand.csv is also reference/proxy data rather than a documented authoritative source.
 
 Priority actions:
-- replace the demo attraction list with a real POI dataset (for example: attractions, beaches, downtown cores, entertainment districts, parks, airport nodes)
+- replace the small POI file with a sourced dataset such as OpenStreetMap/Overpass or an official tourism/municipal dataset
+- document source URL, retrieval date, license, and geographic coverage for each source
 - store the POI layer in a structured table or CSV source
 - compute nearest attraction using geospatial distance against the actual listing coordinates
 - add a confidence flag or data-quality note for any POI-derived metric
+- replace tourism proxy values with LA Tourism and Authority/City of San Diego or other documented public sources
 
-## 2) Separate demo fallback data from real data in the app narrative
+## 2) Add source and data-quality labels
 
 The app currently mixes:
 - actual raw Airbnb listing data
@@ -20,11 +33,22 @@ The app currently mixes:
 To reduce confusion, the dashboard should clearly distinguish:
 - data source = actual raw listings
 - data source = generated fallback
-- demo/placeholder = attraction layer
+- reference/proxy = tourism and demographic layer
+- curated/incomplete = current POI layer
 
 This should be surfaced in the UI or in the README notes.
 
-## 3) Add real market-neighborhood drilldown
+## 3) Add richer listing attributes
+
+The current Inside Airbnb extracts do not contain beds, baths, area, or structured amenities. Find a permitted/authorized source or listing feed that includes:
+- bedrooms, beds, bathrooms, and property size
+- amenities as structured values
+- review score and review count
+- address or sufficiently precise coordinates, subject to privacy and source terms
+
+Do not infer these fields from listing titles without labeling them as extracted estimates.
+
+## 4) Add real market-neighborhood drilldown
 
 The listing detail panel should feel like an actual drilldown, not just a top-N list from a market.
 
@@ -33,9 +57,9 @@ Recommended flow:
 - choose neighborhood or region
 - view listing cards / table
 - sort by annual revenue, occupancy, nightly rate, distance to attraction
-- filter by room type
+- filter by room type, bedrooms, bathrooms, amenities, and price band once those fields are available
 
-## 4) Improve the scoring definition
+## 5) Improve the scoring definition
 
 The market scorecards are useful, but their composite score should be explained in plain language.
 
@@ -44,7 +68,7 @@ Add:
 - weight explanation for occupancy, nightly rate, reviews, and yield
 - what is a “good” score vs. “high risk” score
 
-## 5) Add true geospatial analysis for investment screening
+## 6) Add true geospatial analysis for investment screening
 
 The next stage should be location intelligence, not just listing detail.
 
@@ -55,7 +79,7 @@ Suggested analyses:
 - distance-to-attraction bucket analysis
 - top performers within 1 mi / 5 mi / 10 mi of attractions
 
-## 6) Add a proper data-quality pipeline
+## 7) Add a proper data-quality pipeline
 
 Need a lightweight data quality status layer:
 - source completeness by market
@@ -64,7 +88,7 @@ Need a lightweight data quality status layer:
 - % of listings with null neighborhood
 - duplicates and invalid values
 
-## 7) Add a realistic “front-end” UX for decision making
+## 8) Add a realistic “front-end” UX for decision making
 
 The current dashboard is a prototype. To make it real:
 - use a search/filter bar for neighborhood and room type
@@ -72,7 +96,7 @@ The current dashboard is a prototype. To make it real:
 - add a market summary card with actual score explanation
 - allow sorting by revenue, yield, occupancy, and distance
 
-## 8) Decide the product definition of “STR market opportunity”
+## 9) Decide the product definition of “STR market opportunity”
 
 The app should explicitly answer:
 - where should an investor target next?
@@ -82,7 +106,7 @@ The app should explicitly answer:
 
 This should be codified as a specific screening model.
 
-## 9) Validate against real geography and real POIs
+## 10) Validate against real geography and real POIs
 
 Before using the dashboard in user-facing analysis, validate manually against a few neighborhoods:
 - South Diamond Bar
@@ -94,7 +118,7 @@ Check that:
 - actual distance to nearest attraction is plausible
 - rankings reflect actual geo location, not a default list
 
-## 10) Add a handoff-ready documentation pass
+## 11) Add a handoff-ready documentation pass
 
 The repository should explicitly separate:
 - data source documentation
